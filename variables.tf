@@ -5,5 +5,5 @@ variable "prefix" {
 
 variable "ssh_key_name" {
   description = "prefix for resources created"
-  default     = "OB1-keypair"
+  default     = "OB1_keypair"
 }
