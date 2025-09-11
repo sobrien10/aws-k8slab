@@ -22,8 +22,8 @@ module "vpc" {
   cidr = "10.0.0.0/16"
 
   azs             = ["eu-west-2a"]
-  public_subnets  = ["10.0.1.0/24"]
-  private_subnets = ["10.0.2.0/24"]
+  public_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]
+  private_subnets = ["10.0.3.0/24"]
 
   enable_nat_gateway = true
 
@@ -66,8 +66,8 @@ data "template_file" "user_data1" {
 resource "aws_instance" "c1-cp1" {
   ami = "ami-0379821d182aac933"
   instance_type = "t3a.small"
-  subnet_id   = module.vpc.public_subnets[0]
-  private_ip = "10.0.1.10"
+  subnet_id   = module.vpc.public_subnets[1]
+  private_ip = "10.0.2.10"
   key_name   = var.ssh_key_name
   user_data = data.template_file.user_data1.rendered
   security_groups = [ aws_security_group.f5.id ]
@@ -104,8 +104,8 @@ data "template_file" "user_data2" {
 resource "aws_instance" "c1-node1" {
   ami = "ami-0379821d182aac933"
   instance_type = "t3a.small"
-  subnet_id   = module.vpc.public_subnets[0]
-  private_ip = "10.0.1.11"
+  subnet_id   = module.vpc.public_subnets[1]
+  private_ip = "10.0.2.11"
   key_name   = var.ssh_key_name
   user_data = data.template_file.user_data2.rendered
   security_groups = [ aws_security_group.f5.id ]
@@ -142,8 +142,8 @@ data "template_file" "user_data3" {
 resource "aws_instance" "c1-node2" {
   ami = "ami-0379821d182aac933"
   instance_type = "t3a.small"
-  subnet_id   = module.vpc.public_subnets[0]
-  private_ip = "10.0.1.12"
+  subnet_id   = module.vpc.public_subnets[1]
+  private_ip = "10.0.2.12"
   key_name   = var.ssh_key_name
   user_data = data.template_file.user_data3.rendered
   security_groups = [ aws_security_group.f5.id ]
@@ -180,8 +180,8 @@ data "template_file" "user_data4" {
 resource "aws_instance" "c1-node3" {
   ami = "ami-0379821d182aac933"
   instance_type = "t3a.small"
-  subnet_id   = module.vpc.public_subnets[0]
-  private_ip = "10.0.1.13"
+  subnet_id   = module.vpc.public_subnets[1]
+  private_ip = "10.0.2.13"
   key_name   = var.ssh_key_name
   user_data = data.template_file.user_data4.rendered
   security_groups = [ aws_security_group.f5.id ]
@@ -206,4 +206,68 @@ resource "aws_eip" "c1-node3" {
 output "public_ip_4" {
   description = "Public IP address of the instance"
   value       = aws_eip.c1-node3.public_ip
+}
+
+#Build the BIG-IP
+
+resource "aws_network_interface" "mgmt" {
+  subnet_id       = module.vpc.public_subnets[0]  # Management subnet
+  private_ips     = ["10.0.1.100"]
+  security_groups = [ aws_security_group.f5.id ]    # Management security group
+
+  tags = {
+    Name = "BIG-IP-MGMT"
+  }
+}
+
+resource "aws_network_interface" "prod" {
+  subnet_id       = module.vpc.public_subnets[1]  # Production subnet
+  private_ips     = ["10.0.2.100"]
+  security_groups = [ aws_security_group.f5.id ]    # Production security group
+
+  tags = {
+    Name = "BIG-IP-PROD"
+  }
+}
+
+resource "aws_instance" "bigip" {
+  ami           = "ami-00920d9e85b5caa90"       # Replace with BIG-IP AMI
+  instance_type = "m5.large"
+  key_name      = "OB1_keypair"
+
+  network_interface {
+    device_index         = 0
+    network_interface_id = aws_network_interface.mgmt.id
+  }
+
+  network_interface {
+    device_index         = 1
+    network_interface_id = aws_network_interface.prod.id
+  }
+
+ user_data = <<-EOF
+    #cloud-config
+    chpasswd:
+      list: |
+        root:theBIGip4321?
+        admin:theBIGip4321?
+      expire: False
+  EOF
+
+  tags = {
+    Name = "OB1_BIG_IP"
+  }
+}
+
+resource "aws_eip" "bigip_mgmt_eip" {
+  domain = "vpc"
+
+  tags = {
+    Name = "BIG-IP-MGMT-EIP"
+  }
+}
+
+resource "aws_eip_association" "mgmt_eip_assoc" {
+  allocation_id        = aws_eip.bigip_mgmt_eip.id
+  network_interface_id = aws_network_interface.mgmt.id
 }
