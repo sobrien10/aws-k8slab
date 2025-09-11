@@ -1,6 +1,6 @@
 #!/bin/bash
 # Set the Hostname for the host (Change for each host in the cluster)
-sudo hostname c1-node1
+sudo hostnamectl set-hostname c1-node1
 
 # Host configuration startup script
 # Configures /etc/hosts with cluster nodes
@@ -12,10 +12,10 @@ cp /etc/hosts /etc/hosts.backup
 cat >> /etc/hosts << 'EOF'
 
 # Cluster nodes
-10.0.1.10    c1-cp1
-10.0.1.11    c1-node1
-10.0.1.12    c1-node2
-10.0.1.13    c1-node3
+10.0.2.10    c1-cp1
+10.0.2.11    c1-node1
+10.0.2.12    c1-node2
+10.0.2.13    c1-node3
 EOF
 
 # Log completion

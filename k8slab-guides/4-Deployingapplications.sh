@@ -155,6 +155,11 @@ kubectl expose deployment hello-world \
      --port=80 --target-port=8080 \
      --dry-run=client -o yaml | more
 
+kubectl expose deployment hello-world \
+     --port 80 --target-port 8080 --type NodePort \
+      --dry-run=client -o yaml > service.yaml
+
+
 
 #Write the service yaml manifest to file
 kubectl expose deployment hello-world \
