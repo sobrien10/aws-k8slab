@@ -33,7 +33,7 @@ module "vpc" {
   }
 }
 
-#Configure the security Group for management and application access
+#Configure the Security Group for management and application access
 resource "aws_security_group" "f5" {
   name   = "${var.prefix}-f5"
   vpc_id = module.vpc.vpc_id
