@@ -56,6 +56,7 @@ resource "aws_security_group" "f5" {
   }
 }
 
+#Build the k8s Controller Node c1-cp1
 #Reference the template file that will be used to configure host c1-cp1
 data "template_file" "user_data1" {
   template = file("${path.module}/userdata1.tmpl")
@@ -89,11 +90,12 @@ resource "aws_eip" "c1-cp1" {
 }
 
 # Output the public IP address for c1-cp1
-output "public_ip_1" {
+output "c1-cp1" {
   description = "Public IP address of the instance"
   value       = aws_eip.c1-cp1.public_ip
 }
 
+#Build the k8s Worker Node c1-node1
 #Reference the template file that will be used to configure host c1-node1
 data "template_file" "user_data2" {
   template = file("${path.module}/userdata2.tmpl")
@@ -114,30 +116,13 @@ resource "aws_instance" "c1-node1" {
   }
 }
 
-# Elastic IP for c1-node1
-resource "aws_eip" "c1-node1" {
-  instance = aws_instance.c1-node1.id
-  domain   = "vpc"
-  
-  tags = {
-    Name = "${var.prefix}-c1-node1-eip"
-  }
-  
-  depends_on = [aws_instance.c1-node1]
-}
-
-# Output the public IP address for c1-node1
-output "public_ip_2" {
-  description = "Public IP address of the instance"
-  value       = aws_eip.c1-node1.public_ip
-}
-
 #Reference the template file that will be used to configure host c1-node2
 data "template_file" "user_data3" {
   template = file("${path.module}/userdata3.tmpl")
 
 }
 
+#Build the k8s Worker Node c1-node2
 #Build the host c1-node2 instance and install prerequisites & then k8s
 resource "aws_instance" "c1-node2" {
   ami = "ami-0379821d182aac933"
@@ -152,30 +137,13 @@ resource "aws_instance" "c1-node2" {
   }
 }
 
-# Elastic IP for c1-node2
-resource "aws_eip" "c1-node2" {
-  instance = aws_instance.c1-node2.id
-  domain   = "vpc"
-  
-  tags = {
-    Name = "${var.prefix}-c1-node2-eip"
-  }
-  
-  depends_on = [aws_instance.c1-node2]
-}
-
-# Output the public IP address for c1-node2
-output "public_ip_3" {
-  description = "Public IP address of the instance"
-  value       = aws_eip.c1-node2.public_ip
-}
-
 #Reference the template file that will be used to configure host c1-node3
 data "template_file" "user_data4" {
   template = file("${path.module}/userdata4.tmpl")
 
 }
 
+#Build the k8s Worker Node c1-node3
 #Build the host c1-node3 instance and install prerequisites & then k8s
 resource "aws_instance" "c1-node3" {
   ami = "ami-0379821d182aac933"
@@ -188,24 +156,6 @@ resource "aws_instance" "c1-node3" {
     tags = {
     Name = "${var.prefix}-c1-node3"
   }
-}
-
-# Elastic IP for c1-node3
-resource "aws_eip" "c1-node3" {
-  instance = aws_instance.c1-node3.id
-  domain   = "vpc"
-  
-  tags = {
-    Name = "${var.prefix}-c1-node3-eip"
-  }
-  
-  depends_on = [aws_instance.c1-node3]
-}
-
-# Output the public IP address for c1-node3
-output "public_ip_4" {
-  description = "Public IP address of the instance"
-  value       = aws_eip.c1-node3.public_ip
 }
 
 #Build the BIG-IP
@@ -270,4 +220,10 @@ resource "aws_eip" "bigip_mgmt_eip" {
 resource "aws_eip_association" "mgmt_eip_assoc" {
   allocation_id        = aws_eip.bigip_mgmt_eip.id
   network_interface_id = aws_network_interface.mgmt.id
+}
+
+# Output the public IP address for the BIGIP
+output "bigip_mgmt" {
+  description = "Public IP address for the BIGIP"
+  value       = aws_eip.bigip_mgmt_eip.public_ip
 }
