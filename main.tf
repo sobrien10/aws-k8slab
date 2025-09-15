@@ -210,16 +210,6 @@ resource "aws_network_interface" "prod" {
   }
 }
 
-resource "aws_network_interface" "prod_vip" {
-  subnet_id       = module.vpc.public_subnets[1]  # Production subnet
-  private_ips     = ["10.0.2.101"]
-  security_groups = [ aws_security_group.f5.id ]    # Production security group
-
-  tags = {
-    Name = "BIG-IP-PROD"
-  }
-}
-
 resource "aws_instance" "bigip" {
   ami           = "ami-00920d9e85b5caa90"       # Replace with BIG-IP AMI
   instance_type = "m5.large"
@@ -262,17 +252,17 @@ resource "aws_eip_association" "mgmt_eip_assoc" {
   network_interface_id = aws_network_interface.mgmt.id
 }
 
-resource "aws_eip" "bigip_prod_vip_eip" {
+resource "aws_eip" "bigip_prod_eip" {
   domain = "vpc"
 
   tags = {
-    Name = "BIG-IP-MGMT-EIP"
+    Name = "BIG-IP-PROD-EIP"
   }
 }
 
-resource "aws_eip_association" "prod_vip" {
-  allocation_id        = aws_eip.bigip_prod_vip_eip.id
-  network_interface_id = aws_network_interface.prod_vip.id
+resource "aws_eip_association" "prod" {
+  allocation_id        = aws_eip.bigip_prod_eip.id
+  network_interface_id = aws_network_interface.prod.id
 }
 
 # Output the public IP address for the BIGIP
@@ -281,10 +271,10 @@ output "bigip_mgmt" {
   value       = aws_eip.bigip_mgmt_eip.public_ip
 }
 
-# Output the VIP IP address for the BIGIP
-output "bigip_prod_vip" {
+# Output the PROD IP address for the BIGIP
+output "bigip_prod" {
   description = "Public IP address for the BIGIP"
-  value       = aws_eip.bigip_prod_vip_eip.public_ip
+  value       = aws_eip.bigip_prod_eip.public_ip
 }
 
 # Output the public IP address for c1-cp1
