@@ -89,12 +89,6 @@ resource "aws_eip" "c1-cp1" {
   depends_on = [aws_instance.c1-cp1]
 }
 
-# Output the public IP address for c1-cp1
-output "c1-cp1" {
-  description = "Public IP address of the instance"
-  value       = aws_eip.c1-cp1.public_ip
-}
-
 #Build the k8s Worker Node c1-node1
 #Reference the template file that will be used to configure host c1-node1
 data "template_file" "user_data2" {
@@ -114,6 +108,18 @@ resource "aws_instance" "c1-node1" {
     tags = {
     Name = "${var.prefix}-c1-node1"
   }
+}
+
+# Elastic IP for c1-node1
+resource "aws_eip" "c1-node1" {
+  instance = aws_instance.c1-node1.id
+  domain   = "vpc"
+  
+  tags = {
+    Name = "${var.prefix}-c1-node1-eip"
+  }
+  
+  depends_on = [aws_instance.c1-node1]
 }
 
 #Reference the template file that will be used to configure host c1-node2
@@ -143,6 +149,18 @@ data "template_file" "user_data4" {
 
 }
 
+# Elastic IP for c1-node2
+resource "aws_eip" "c1-node2" {
+  instance = aws_instance.c1-node2.id
+  domain   = "vpc"
+  
+  tags = {
+    Name = "${var.prefix}-c1-node2-eip"
+  }
+  
+  depends_on = [aws_instance.c1-node2]
+}
+
 #Build the k8s Worker Node c1-node3
 #Build the host c1-node3 instance and install prerequisites & then k8s
 resource "aws_instance" "c1-node3" {
@@ -156,6 +174,18 @@ resource "aws_instance" "c1-node3" {
     tags = {
     Name = "${var.prefix}-c1-node3"
   }
+}
+
+# Elastic IP for c1-node3
+resource "aws_eip" "c1-node3" {
+  instance = aws_instance.c1-node3.id
+  domain   = "vpc"
+  
+  tags = {
+    Name = "${var.prefix}-c1-node3-eip"
+  }
+  
+  depends_on = [aws_instance.c1-node3]
 }
 
 #Build the BIG-IP
@@ -173,6 +203,16 @@ resource "aws_network_interface" "mgmt" {
 resource "aws_network_interface" "prod" {
   subnet_id       = module.vpc.public_subnets[1]  # Production subnet
   private_ips     = ["10.0.2.100"]
+  security_groups = [ aws_security_group.f5.id ]    # Production security group
+
+  tags = {
+    Name = "BIG-IP-PROD"
+  }
+}
+
+resource "aws_network_interface" "prod_vip" {
+  subnet_id       = module.vpc.public_subnets[1]  # Production subnet
+  private_ips     = ["10.0.2.101"]
   security_groups = [ aws_security_group.f5.id ]    # Production security group
 
   tags = {
@@ -222,8 +262,33 @@ resource "aws_eip_association" "mgmt_eip_assoc" {
   network_interface_id = aws_network_interface.mgmt.id
 }
 
+resource "aws_eip" "bigip_prod_vip_eip" {
+  domain = "vpc"
+
+  tags = {
+    Name = "BIG-IP-MGMT-EIP"
+  }
+}
+
+resource "aws_eip_association" "prod_vip" {
+  allocation_id        = aws_eip.bigip_prod_vip_eip.id
+  network_interface_id = aws_network_interface.prod_vip.id
+}
+
 # Output the public IP address for the BIGIP
 output "bigip_mgmt" {
   description = "Public IP address for the BIGIP"
   value       = aws_eip.bigip_mgmt_eip.public_ip
+}
+
+# Output the VIP IP address for the BIGIP
+output "bigip_prod_vip" {
+  description = "Public IP address for the BIGIP"
+  value       = aws_eip.bigip_prod_vip_eip.public_ip
+}
+
+# Output the public IP address for c1-cp1
+output "c1-cp1" {
+  description = "Public IP address of the instance"
+  value       = aws_eip.c1-cp1.public_ip
 }
