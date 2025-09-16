@@ -189,7 +189,6 @@ resource "aws_eip" "c1-node3" {
 }
 
 #Build the BIG-IP
-
 resource "aws_network_interface" "mgmt" {
   subnet_id       = module.vpc.public_subnets[0]  # Management subnet
   private_ips     = ["10.0.1.100"]
@@ -229,8 +228,8 @@ resource "aws_instance" "bigip" {
     #cloud-config
     chpasswd:
       list: |
-        root:theBIGip4321?
-        admin:theBIGip4321?
+        root:Changetoyourpassword
+        admin:Changetoyourpassword
       expire: False
   EOF
 
